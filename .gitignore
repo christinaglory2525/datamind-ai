@@ -1,0 +1,12 @@
+venv/
+.env
+.vs/
+__pycache__/
+*.pyc
+data/*.db
+
+# Backend databases
+backend/data/*.db
+
+# Generated charts
+frontend/charts/*.html

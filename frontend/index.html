@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DataMind AI</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            🧠
+            <span>DataMind AI</span>
+        </div>
+
+        <button class="new-chat" onclick="newChat()">
+            + New Analysis
+        </button>
+
+        <div class="sidebar-section">
+
+            <p>Try asking</p>
+
+            <button onclick="askExample('What are the top 5 products by revenue?')">
+                📊 Top products by revenue
+            </button>
+
+            <button onclick="askExample('Show me all customers')">
+                👥 Show all customers
+            </button>
+
+            <button onclick="askExample('Show products by category')">
+                📦 Products by category
+            </button>
+
+            <button onclick="askExample('Show me the ER diagram of the database')">
+                🗂️ Database ER Diagram
+            </button>
+
+        </div>
+
+        <div class="sidebar-bottom">
+
+            <span>Database: SQLite</span>
+            <span>AI: Gemini</span>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main">
+
+        <!-- HEADER -->
+
+        <header class="header">
+
+            <div>
+
+                <h1>Data Intelligence Assistant</h1>
+
+                <p>
+                    Ask questions about your database in natural language.
+                </p>
+
+            </div>
+
+            <div class="status">
+
+                <span></span>
+                Online
+
+            </div>
+
+        </header>
+
+
+        <!-- ================= CHAT ================= -->
+
+        <section id="chat" class="chat">
+
+            <!-- WELCOME SCREEN -->
+
+            <div class="welcome" id="welcome">
+
+                <div class="welcome-icon">
+                    🧠
+                </div>
+
+                <h2>
+                    Ask your database anything
+                </h2>
+
+                <p>
+                    I can query your database, generate visualizations,
+                    and explain the results.
+                </p>
+
+
+                <!-- EXAMPLE QUESTIONS -->
+
+                <div class="examples">
+
+                    <button
+                        onclick="askExample('What are the top 5 products by revenue?')">
+
+                        📈 Top 5 products by revenue
+
+                    </button>
+
+
+                    <button
+                        onclick="askExample('Show me the products with the highest price')">
+
+                        💰 Highest priced products
+
+                    </button>
+
+
+                    <button
+                        onclick="askExample('How many customers are in each country?')">
+
+                        🌍 Customers by country
+
+                    </button>
+
+
+                    <button
+                        onclick="askExample('Show me the ER diagram of the database')">
+
+                        🗂️ ER Diagram
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= RESULTS ================= -->
+
+            <!-- IMPORTANT:
+                 Your JavaScript uses:
+                 document.getElementById("result")
+            -->
+
+            <div id="result"></div>
+
+        </section>
+
+
+        <!-- ================= INPUT ================= -->
+
+        <div class="input-area">
+
+            <div class="input-box">
+
+                <textarea
+                    id="question"
+                    placeholder="Ask your database anything..."
+                    rows="1"
+                ></textarea>
+
+
+                <!-- IMPORTANT:
+                     Your JavaScript uses askButton
+                -->
+
+                <button
+                    id="askButton"
+                    type="button">
+
+                    ➤
+
+                </button>
+
+            </div>
+
+
+            <p class="input-hint">
+
+                Press Enter to analyze •
+                Shift + Enter for a new line
+
+            </p>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- ================= JAVASCRIPT ================= -->
+
+<script src="script.js"></script>
+
+</body>
+
+</html>
