@@ -52,7 +52,7 @@ Visualization
 
 ## 🌐 Live Demo
 
-https://datamind-ai-shv.onrender.com
+https://datamind-ai-shvv.onrender.com/
 
 ## 📂 GitHub Repository
 
