@@ -9,7 +9,7 @@ import plotly.express as px
 # PATHS
 # ============================================================
 
-DB_PATH = Path(__file__).parent.parent / "data" / "ecommerce.db"
+DB_PATH = Path(__file__).parent / "data" / "company.db"
 CHART_DIR = Path(__file__).parent.parent / "frontend" / "charts"
 
 
