@@ -50,6 +50,24 @@ Rules:
 1. Only use SELECT or WITH queries.
 2. Never INSERT, UPDATE, DELETE, DROP, ALTER, or CREATE.
 3. Use only tables and columns that exist in the schema.
+IMPORTANT DATABASE RULE:
+For revenue questions, calculate revenue using:
+products.price * order_items.quantity
+
+The products table has:
+product_id, name, category, price
+
+The order_items table has:
+order_item_id, order_id, product_id, quantity
+
+For example, for "top 5 products by revenue", use:
+SELECT p.name,
+       SUM(p.price * oi.quantity) AS revenue
+FROM products p
+JOIN order_items oi ON p.product_id = oi.product_id
+GROUP BY p.product_id, p.name
+ORDER BY revenue DESC
+LIMIT 5;
 4. Return ONLY the SQL query.
 5. Do not use markdown code blocks.
 """
