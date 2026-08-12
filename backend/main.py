@@ -3,10 +3,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.agent import process_question
-
 
 app = FastAPI(
     title="DataMind AI",
@@ -14,8 +14,6 @@ app = FastAPI(
     version="1.0"
 )
 
-
-# Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,14 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# Paths
-BASE_DIR = Path(__file__).parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 CHARTS_DIR = FRONTEND_DIR / "charts"
 
-
-# Make chart files accessible
 CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount(
@@ -47,10 +41,7 @@ class QuestionRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {
-        "message": "DataMind AI is running!",
-        "status": "online"
-    }
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 
 @app.post("/api/ask")
@@ -63,3 +54,10 @@ def ask_database(request: QuestionRequest):
         }
 
     return process_question(request.question)
+
+
+app.mount(
+    "/",
+    StaticFiles(directory=str(FRONTEND_DIR), html=True),
+    name="frontend"
+)

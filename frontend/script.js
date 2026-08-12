@@ -2,7 +2,7 @@
 // DataMind AI - Frontend JavaScript
 // ==========================================
 
-const API_URL = "http://127.0.0.1:8000/api/ask";
+const API_URL = "/api/ask";
 
 const questionInput = document.getElementById("question");
 const sendButton = document.getElementById("sendBtn");
