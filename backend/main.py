@@ -3,7 +3,6 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from backend.agent import process_question
@@ -39,9 +38,12 @@ class QuestionRequest(BaseModel):
     question: str
 
 
-@app.get("/")
-def home():
-    return FileResponse(FRONTEND_DIR / "index.html")
+@app.get("/api/health")
+def health():
+    return {
+        "message": "DataMind AI is running!",
+        "status": "online"
+    }
 
 
 @app.post("/api/ask")
@@ -56,8 +58,13 @@ def ask_database(request: QuestionRequest):
     return process_question(request.question)
 
 
+# IMPORTANT: keep this LAST
+# This makes your frontend publicly accessible
 app.mount(
     "/",
-    StaticFiles(directory=str(FRONTEND_DIR), html=True),
+    StaticFiles(
+        directory=str(FRONTEND_DIR),
+        html=True
+    ),
     name="frontend"
 )
