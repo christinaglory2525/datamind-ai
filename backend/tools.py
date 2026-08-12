@@ -9,7 +9,19 @@ import plotly.express as px
 # PATHS
 # ============================================================
 
-DB_PATH = Path(__file__).resolve().parent / "data" / "company.db"
+BASE_DIR = Path(__file__).resolve().parent
+
+POSSIBLE_DB_PATHS = [
+    BASE_DIR / "data" / "company.db",
+    BASE_DIR.parent / "data" / "company.db",
+    Path.cwd() / "data" / "company.db",
+    Path.cwd() / "backend" / "data" / "company.db",
+]
+
+DB_PATH = next(
+    (path for path in POSSIBLE_DB_PATHS if path.exists()),
+    BASE_DIR / "data" / "company.db"
+)
 CHART_DIR = Path(__file__).parent.parent / "frontend" / "charts"
 
 
