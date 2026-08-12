@@ -115,7 +115,7 @@ async function sendQuestion() {
                 ❌ Could not connect to the AI backend.
                 <br><br>
                 Make sure FastAPI is running on:
-                <strong>http://127.0.0.1:8000</strong>
+                <strong>""</strong>
             </div>
         `);
     }
@@ -272,7 +272,7 @@ function displayResult(result) {
 
         // Make sure URL works from frontend
         if (chartURL.startsWith("/")) {
-            chartURL = "http://127.0.0.1:8000" + chartURL;
+            chartURL = "" + chartURL;
         }
 
 
@@ -312,7 +312,7 @@ function displayResult(result) {
         let diagramURL = result.diagram.url;
 
         if (diagramURL.startsWith("/")) {
-            diagramURL = "http://127.0.0.1:8000" + diagramURL;
+            diagramURL = "" + diagramURL;
         }
 
 
