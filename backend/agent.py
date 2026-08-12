@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from functools import lru_cache
 
 from dotenv import load_dotenv
 from google import genai
@@ -10,7 +11,6 @@ from backend.tools import (
     execute_query,
     generate_chart,
     generate_flowchart,
-    explain_data,
 )
 
 # Load .env
@@ -19,13 +19,24 @@ load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
-    raise ValueError(
-        "GEMINI_API_KEY is missing. Check your .env file."
-    )
+    raise ValueError("GEMINI_API_KEY is missing. Check your .env file.")
 
-# Create Gemini client
+# Gemini client
 client = genai.Client(api_key=API_KEY)
 
+
+# ---------------------------------------------------------
+# DATABASE SCHEMA
+# ---------------------------------------------------------
+
+@lru_cache(maxsize=1)
+def cached_schema():
+    return get_schema()
+
+
+# ---------------------------------------------------------
+# GEMINI SQL GENERATION
+# ---------------------------------------------------------
 
 def generate_sql(question: str, schema: dict) -> str:
     """Convert a natural-language question into SQL."""
@@ -33,9 +44,7 @@ def generate_sql(question: str, schema: dict) -> str:
     schema_text = json.dumps(schema, indent=2)
 
     prompt = f"""
-You are an expert SQL analyst.
-
-You are working with a SQLite e-commerce database.
+You are an expert SQLite SQL analyst.
 
 DATABASE SCHEMA:
 {schema_text}
@@ -43,33 +52,32 @@ DATABASE SCHEMA:
 USER QUESTION:
 {question}
 
-Your task:
-Write ONE SQLite SQL query that answers the user's question.
+Write ONE SQLite SELECT query that answers the question.
 
 Rules:
-1. Only use SELECT or WITH queries.
+1. Only SELECT or WITH queries.
 2. Never INSERT, UPDATE, DELETE, DROP, ALTER, or CREATE.
 3. Use only tables and columns that exist in the schema.
-IMPORTANT DATABASE RULE:
-For revenue questions, calculate revenue using:
-products.price * order_items.quantity
+4. For product revenue, use products.price * order_items.quantity.
+5. Return ONLY SQL.
+6. Do not use markdown.
 
-The products table has:
+Important schema:
+products:
 product_id, name, category, price
 
-The order_items table has:
+order_items:
 order_item_id, order_id, product_id, quantity
 
-For example, for "top 5 products by revenue", use:
+Example:
 SELECT p.name,
        SUM(p.price * oi.quantity) AS revenue
 FROM products p
-JOIN order_items oi ON p.product_id = oi.product_id
+JOIN order_items oi
+ON p.product_id = oi.product_id
 GROUP BY p.product_id, p.name
 ORDER BY revenue DESC
 LIMIT 5;
-4. Return ONLY the SQL query.
-5. Do not use markdown code blocks.
 """
 
     response = client.models.generate_content(
@@ -79,47 +87,118 @@ LIMIT 5;
 
     sql = response.text.strip()
 
-    # Remove markdown fences if Gemini adds them
     sql = re.sub(r"```sql", "", sql, flags=re.IGNORECASE)
     sql = re.sub(r"```", "", sql)
 
     return sql.strip()
 
 
+# ---------------------------------------------------------
+# FAST SQL FOR COMMON HACKATHON QUESTIONS
+# ---------------------------------------------------------
+
+def fast_query(question: str):
+    q = question.lower().strip()
+
+    # TOP 5 PRODUCTS BY REVENUE
+    if "top 5 products by revenue" in q:
+        return """
+        SELECT
+            p.name,
+            SUM(p.price * oi.quantity) AS revenue
+        FROM products p
+        JOIN order_items oi
+            ON p.product_id = oi.product_id
+        GROUP BY p.product_id, p.name
+        ORDER BY revenue DESC
+        LIMIT 5
+        """.strip()
+
+    # HIGHEST PRICED PRODUCTS
+    if "highest priced products" in q:
+        return """
+        SELECT name, price
+        FROM products
+        ORDER BY price DESC
+        LIMIT 5
+        """.strip()
+
+    # PRODUCTS BY CATEGORY
+    if "products by category" in q:
+        return """
+        SELECT category, COUNT(*) AS product_count
+        FROM products
+        GROUP BY category
+        ORDER BY product_count DESC
+        """.strip()
+
+    # SHOW ALL CUSTOMERS
+    if "show all customers" in q:
+        return """
+        SELECT *
+        FROM customers
+        """.strip()
+
+    return None
+
+
+# ---------------------------------------------------------
+# MAIN AI WORKFLOW
+# ---------------------------------------------------------
+
 def process_question(question: str) -> dict:
     """Run the complete AI database workflow."""
 
-    # Handle ER diagram requests
+    # -----------------------------------------------------
+    # ER DIAGRAM
+    # -----------------------------------------------------
+
     diagram_keywords = [
         "er diagram",
         "erd",
         "entity relationship",
         "database diagram",
         "schema diagram",
-        "relationship diagram"
+        "relationship diagram",
     ]
 
     if any(keyword in question.lower() for keyword in diagram_keywords):
 
-        schema = get_schema()
+        schema = cached_schema()
 
         diagram = generate_flowchart(schema)
 
         return {
             "success": diagram["success"],
             "question": question,
-            "diagram": diagram
+            "diagram": diagram,
         }
 
     try:
 
-        # Step 1: Get database schema
-        schema = get_schema()
+        # -------------------------------------------------
+        # STEP 1: GET SCHEMA
+        # -------------------------------------------------
 
-        # Step 2: Convert question → SQL
-        sql = generate_sql(question, schema)
+        schema = cached_schema()
 
-        # Step 3: Execute SQL
+        # -------------------------------------------------
+        # STEP 2: FAST PATH
+        # -------------------------------------------------
+
+        sql = fast_query(question)
+
+        # -------------------------------------------------
+        # STEP 3: GEMINI ONLY IF NEEDED
+        # -------------------------------------------------
+
+        if sql is None:
+            sql = generate_sql(question, schema)
+
+        # -------------------------------------------------
+        # STEP 4: EXECUTE SQL
+        # -------------------------------------------------
+
         result = execute_query(sql)
 
         if not result["success"]:
@@ -130,15 +209,51 @@ def process_question(question: str) -> dict:
                 "error": result["error"],
             }
 
-        # Step 4: Explain result
-        explanation = explain_data(result)
+        # -------------------------------------------------
+        # STEP 5: LOCAL EXPLANATION
+        # NO SECOND AI CALL
+        # -------------------------------------------------
 
-        # Step 5: Generate chart
+        rows = result.get("rows", [])
+
+        if rows:
+
+            columns = ", ".join(rows[0].keys())
+
+            explanation = (
+                f"The query returned {len(rows)} results. "
+                f"The result contains the columns: {columns}."
+            )
+
+            # Special explanation for revenue
+            if "revenue" in rows[0]:
+
+                highest = rows[0]
+
+                if "name" in highest:
+                    explanation = (
+                        f"The query returned {len(rows)} results. "
+                        f"The highest revenue product is "
+                        f"{highest['name']} with revenue of "
+                        f"{highest['revenue']}."
+                    )
+
+        else:
+            explanation = "The query returned no results."
+
+        # -------------------------------------------------
+        # STEP 6: GENERATE CHART
+        # -------------------------------------------------
+
         chart = generate_chart(
             result,
             chart_type="bar",
             title=question,
         )
+
+        # -------------------------------------------------
+        # FINAL RESPONSE
+        # -------------------------------------------------
 
         return {
             "success": True,
@@ -156,6 +271,12 @@ def process_question(question: str) -> dict:
             "question": question,
             "error": str(error),
         }
+
+
+# ---------------------------------------------------------
+# TEST
+# ---------------------------------------------------------
+
 if __name__ == "__main__":
 
     question = "What are the top 5 products by revenue?"
